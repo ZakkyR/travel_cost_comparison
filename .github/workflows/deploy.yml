@@ -1,0 +1,30 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies (compiles better-sqlite3 on linux/x64)
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Zip artifact (node_modules 込み)
+        run: zip -r deploy.zip . --exclude '*.git*' --exclude 'tests/*' --exclude 'docs/*'
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: deploy.zip

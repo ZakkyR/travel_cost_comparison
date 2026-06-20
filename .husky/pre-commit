@@ -1,0 +1,8 @@
+#!/bin/sh
+for f in stations.csv parkings.csv .env; do
+  if git diff --cached --name-only | grep -qx "$f"; then
+    echo "ERROR: 個人情報ファイル '$f' がステージされています。"
+    echo "       git reset HEAD $f  で外してください。"
+    exit 1
+  fi
+done
