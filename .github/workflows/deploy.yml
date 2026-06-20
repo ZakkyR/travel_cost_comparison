@@ -17,6 +17,9 @@ jobs:
       - name: Install dependencies (compiles better-sqlite3 on linux/x64)
         run: npm ci
 
+      - name: Run tests
+        run: npm test
+
       - name: Zip artifact (node_modules 込み)
         run: zip -r deploy.zip . --exclude '*.git*' --exclude 'tests/*' --exclude 'docs/*'
 
