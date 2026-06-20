@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
+import * as Sentry from '@sentry/node';
 import { createDb } from './db.js';
 import { authMiddleware } from './auth.js';
 import { createCompareRouter } from './routes/compare.js';
@@ -11,14 +12,17 @@ import { createSettingsRouter } from './routes/settings.js';
 import { createFareRouter } from './routes/fare.js';
 import { createImportRouter } from './routes/import.js';
 import { createMcpRouter } from './routes/mcp.js';
+import { initSentry } from './sentry.js';
 
 dotenv.config();
+initSentry();
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export function createApp(db) {
   const app = express();
   app.use(express.json());
+  Sentry.setupExpressErrorHandler(app);
   app.use(express.static(join(__dirname, 'public')));
   app.use('/api', authMiddleware);
   app.use('/api/compare', createCompareRouter(db));
