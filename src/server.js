@@ -10,6 +10,7 @@ import { createParkingsRouter } from './routes/parkings.js';
 import { createSettingsRouter } from './routes/settings.js';
 import { createFareRouter } from './routes/fare.js';
 import { createImportRouter } from './routes/import.js';
+import { createMcpRouter } from './routes/mcp.js';
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ export function createApp(db) {
   app.use('/api/settings', createSettingsRouter(db));
   app.use('/api/fare', createFareRouter(db));
   app.use('/api/import', createImportRouter(db));
+  app.use('/mcp', authMiddleware, createMcpRouter(db));
   return app;
 }
 
