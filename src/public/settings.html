@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>設定</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>設定</h1><a href="/">← 比較表へ</a><a href="data.html">📋 データ管理</a></header>
+<main>
+  <div id="alert"></div>
+  <form id="f">
+    <label>自宅ラベル（表示用）<input type="text" name="home_label" placeholder="例：自宅"></label>
+    <label>目的地デフォルト<input type="text" name="destination_default" placeholder="例：東京"></label>
+    <label>燃費 (km/L)<input type="number" name="fuel_efficiency_km_per_l" step="0.1" min="0"></label>
+    <label>ガソリン単価 (円/L)<input type="number" name="gas_price_per_l" step="1" min="0"></label>
+    <label>運賃種別デフォルト
+      <select name="fare_type"><option value="IC">IC（交通系ICカード）</option><option value="ticket">きっぷ</option></select>
+    </label>
+    <button type="submit" class="btn">保存</button>
+  </form>
+</main>
+<script type="module">
+import { apiFetch } from './app.js';
+const form = document.getElementById('f');
+apiFetch('/api/settings').then(s => { for (const [k,v] of Object.entries(s)) { const el = form.elements[k]; if (el) el.value = v; } });
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(form));
+  data.fuel_efficiency_km_per_l = Number(data.fuel_efficiency_km_per_l);
+  data.gas_price_per_l = Number(data.gas_price_per_l);
+  try {
+    await apiFetch('/api/settings', { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+    document.getElementById('alert').innerHTML = '<div class="info">保存しました</div>';
+    setTimeout(() => document.getElementById('alert').innerHTML = '', 3000);
+  } catch(e) { document.getElementById('alert').innerHTML = `<div class="alert">${e.message}</div>`; }
+});
+</script>
+</body></html>

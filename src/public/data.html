@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>データ管理</title><link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><h1>データ管理</h1><a href="/">← 比較表へ</a><a href="settings.html">⚙ 設定</a></header>
+<main>
+  <div id="alert"></div>
+  <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+    <div class="tab-bar">
+      <button id="t-stations" class="active" onclick="show('stations')">駅一覧</button>
+      <button id="t-parkings" onclick="show('parkings')">駐車場一覧</button>
+      <button id="t-fare" onclick="show('fare')">運賃手動設定</button>
+    </div>
+    <label style="margin-left:auto;cursor:pointer">CSVインポート 📁<input type="file" id="csvFile" accept=".csv" style="display:none"></label>
+  </div>
+
+  <div id="p-stations">
+    <button class="btn" style="margin-bottom:12px" onclick="openStn()">+ 駅を追加</button>
+    <div id="stationList" class="card"></div>
+  </div>
+  <div id="p-parkings" style="display:none">
+    <button class="btn" style="margin-bottom:12px" onclick="openPkg()">+ 駐車場を追加</button>
+    <div id="parkingList" class="card"></div>
+  </div>
+  <div id="p-fare" style="display:none">
+    <p style="font-size:.9rem;color:#666">目的地ごとに片道運賃を手動で設定します（APIキャッシュより優先されます）。</p>
+    <form id="fareForm" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px">
+      <label style="font-size:.85rem">駅名<br><input type="text" name="station_name" style="width:120px;padding:6px;border:1px solid #ccc;border-radius:4px"></label>
+      <label style="font-size:.85rem">目的地<br><input type="text" name="destination" style="width:100px;padding:6px;border:1px solid #ccc;border-radius:4px"></label>
+      <label style="font-size:.85rem">種別<br><select name="fare_type" style="padding:6px;border:1px solid #ccc;border-radius:4px"><option value="IC">IC</option><option value="ticket">きっぷ</option></select></label>
+      <label style="font-size:.85rem">片道運賃(円)<br><input type="number" name="fare_yen" min="0" style="width:100px;padding:6px;border:1px solid #ccc;border-radius:4px"></label>
+      <button type="submit" class="btn">保存</button>
+    </form>
+    <div id="fareList" class="card"></div>
+  </div>
+
+  <dialog id="modal">
+    <h3 id="modalTitle"></h3>
+    <form id="modalForm"></form>
+    <div class="modal-footer">
+      <button class="btn-sm" onclick="document.getElementById('modal').close()">キャンセル</button>
+      <button class="btn" id="modalOk">保存</button>
+    </div>
+  </dialog>
+</main>
+<script type="module">
+import { apiFetch, daysAgo } from './app.js';
+let tab = 'stations';
+
+window.show = (t) => {
+  tab = t;
+  ['stations','parkings','fare'].forEach(x => {
+    document.getElementById(`p-${x}`).style.display = x===t?'':'none';
+    document.getElementById(`t-${x}`).classList.toggle('active', x===t);
+  });
+  if (t==='stations') loadStations();
+  if (t==='parkings') loadParkings();
+  if (t==='fare') loadFare();
+};
+
+// ─── 駅 ───
+async function loadStations() {
+  const list = await apiFetch('/api/stations');
+  document.getElementById('stationList').innerHTML = list.length === 0
+    ? '<div class="item">駅が登録されていません</div>'
+    : list.map(s => `<div class="item"><div class="item-info"><b>${s.station_name}</b> ${s.line??''} — ${s.driving_distance_km}km${s.note?` (${s.note})`:''}</div>
+        <button class="btn-sm" onclick='openStn(${JSON.stringify(s).replace(/'/g,"&#39;")})'>編集</button>
+        <button class="btn-sm btn-danger" onclick="delStn('${s.station_name}')">削除</button></div>`).join('');
+}
+window.openStn = (s=null) => {
+  document.getElementById('modalTitle').textContent = s ? '駅を編集' : '駅を追加';
+  document.getElementById('modalForm').innerHTML = `
+    <label>駅名（駅すぱあとAPIの正式名）<input type="text" name="station_name" value="${s?.station_name??''}" ${s?'readonly':''} style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label>路線（表示用）<input type="text" name="line" value="${s?.line??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label>片道距離 (km)<input type="number" name="driving_distance_km" step="0.1" value="${s?.driving_distance_km??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label>メモ<input type="text" name="note" value="${s?.note??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px"></label>`;
+  document.getElementById('modalOk').onclick = async () => {
+    const d = Object.fromEntries(new FormData(document.getElementById('modalForm')));
+    d.driving_distance_km = Number(d.driving_distance_km);
+    if (s) await apiFetch(`/api/stations/${encodeURIComponent(s.station_name)}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+    else await apiFetch('/api/stations', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+    document.getElementById('modal').close(); loadStations();
+  };
+  document.getElementById('modal').showModal();
+};
+window.delStn = async (name) => {
+  if (!confirm(`「${name}」を削除しますか？`)) return;
+  await apiFetch(`/api/stations/${encodeURIComponent(name)}`, {method:'DELETE'}); loadStations();
+};
+
+// ─── 駐車場 ───
+async function loadParkings() {
+  const list = await apiFetch('/api/parkings');
+  document.getElementById('parkingList').innerHTML = list.length === 0
+    ? '<div class="item">駐車場が登録されていません</div>'
+    : list.map(p => {
+        const stale = daysAgo(p.last_checked) >= 30 ? ' <span class="warn">⚠ 古い</span>' : '';
+        const prim = p.is_primary ? ' <span style="font-size:.75rem;background:#e8f5e9;color:#2e7d32;padding:1px 6px;border-radius:3px">メイン</span>' : '';
+        return `<div class="item"><div class="item-info"><b>${p.station_name}</b>${prim} ${p.parking_name} — ${p.daily_max_fee.toLocaleString()}円/日${stale}</div>
+          <button class="btn-sm" onclick='openPkg(${JSON.stringify(p).replace(/'/g,"&#39;")})'>編集</button>
+          <button class="btn-sm btn-danger" onclick="delPkg(${p.id})">削除</button></div>`;
+      }).join('');
+}
+window.openPkg = (p=null) => {
+  document.getElementById('modalTitle').textContent = p ? '駐車場を編集' : '駐車場を追加';
+  document.getElementById('modalForm').innerHTML = `
+    <label>駅名<input type="text" name="station_name" value="${p?.station_name??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label>駐車場名<input type="text" name="parking_name" value="${p?.parking_name??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label>1日上限料金(円)<input type="number" name="daily_max_fee" value="${p?.daily_max_fee??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><input type="checkbox" name="is_primary" value="1" ${p?.is_primary?'checked':''}> メイン駐車場として計算に使う</label>
+    <label>料金条件<input type="text" name="conditions" value="${p?.conditions??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label>確認日<input type="date" name="last_checked" value="${p?.last_checked??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;margin-bottom:8px"></label>
+    <label>出典URL<input type="url" name="source_url" value="${p?.source_url??''}" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px"></label>`;
+  document.getElementById('modalOk').onclick = async () => {
+    const fd = new FormData(document.getElementById('modalForm'));
+    const d = Object.fromEntries(fd);
+    d.daily_max_fee = Number(d.daily_max_fee);
+    d.is_primary = fd.get('is_primary') === '1' ? 1 : 0;
+    if (p) await apiFetch(`/api/parkings/${p.id}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+    else await apiFetch('/api/parkings', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+    document.getElementById('modal').close(); loadParkings();
+  };
+  document.getElementById('modal').showModal();
+};
+window.delPkg = async (id) => {
+  if (!confirm('この駐車場を削除しますか？')) return;
+  await apiFetch(`/api/parkings/${id}`, {method:'DELETE'}); loadParkings();
+};
+
+// ─── 運賃 ───
+async function loadFare() {
+  const list = await apiFetch('/api/fare/cache').catch(() => []);
+  document.getElementById('fareList').innerHTML = list.length === 0
+    ? '<div class="item">手動設定された運賃はありません</div>'
+    : list.map(r => `<div class="item"><div class="item-info">${r.station_name} → ${r.destination} (${r.fare_type}): ${r.fare_yen.toLocaleString()}円 <span style="font-size:.8rem;color:#666">${r.is_manual?'手動':'APIキャッシュ'}</span></div>
+        ${r.is_manual?`<button class="btn-sm btn-danger" onclick="clearFare('${r.station_name}','${r.destination}','${r.fare_type}')">クリア</button>`:''}</div>`).join('');
+}
+window.clearFare = async (s,d,t) => {
+  await apiFetch('/api/fare/cache', {method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({station_name:s,destination:d,fare_type:t})});
+  loadFare();
+};
+document.getElementById('fareForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const d = Object.fromEntries(new FormData(e.target));
+  d.fare_yen = Number(d.fare_yen);
+  await apiFetch('/api/fare/manual', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)});
+  e.target.reset(); loadFare();
+});
+
+// ─── CSV ───
+document.getElementById('csvFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if (!file) return;
+  const type = file.name.toLowerCase().includes('station') ? 'stations' : 'parkings';
+  const form = new FormData(); form.append('file', file);
+  const r = await apiFetch(`/api/import/${type}`, {method:'POST',body:form});
+  const msg = `${r.imported}件インポートしました` + (r.errors.length ? `<br>${r.errors.join('<br>')}` : '');
+  document.getElementById('alert').innerHTML = `<div class="${r.errors.length?'alert':'info'}">${msg}</div>`;
+  e.target.value = '';
+  if (tab==='stations') loadStations();
+  if (tab==='parkings') loadParkings();
+});
+
+loadStations();
+</script>
+</body></html>
