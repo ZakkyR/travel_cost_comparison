@@ -1,0 +1,4 @@
+station_name,line,driving_distance_km,note
+サンプルA駅,サンプル線,3.0,架空データ。実データは stations.csv に入れる（コミットしない）
+サンプルB駅,サンプル線,5.5,架空データ
+サンプルC駅,サンプル線,7.2,架空データ

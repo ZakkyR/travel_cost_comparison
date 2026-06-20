@@ -1,0 +1,9 @@
+node_modules/
+.env
+stations.csv
+parkings.csv
+*.local.*
+*.db
+*.db-shm
+*.db-wal
+.DS_Store

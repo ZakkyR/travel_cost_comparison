@@ -1,0 +1,4 @@
+station_name,parking_name,daily_max_fee,is_primary,conditions,lat,lng,last_checked,source_url,note
+サンプルA駅,サンプル駐車場1,600,1,架空データ,,,,,
+サンプルA駅,サンプル駐車場2,800,0,架空データ,,,,,
+サンプルB駅,サンプル駐車場3,500,1,架空データ,,,,,
