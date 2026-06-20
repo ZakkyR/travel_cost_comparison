@@ -1,0 +1,19 @@
+# === 個人情報・実データ（絶対にコミットしない）===
+config.local.json
+config.json
+stations.csv
+parkings.csv
+*.local.*
+.env
+
+# 実データ入りの叩き台（手元用。リポジトリには *.example.csv のみ置く）
+stations_sample.csv
+parkings_sample.csv
+要求仕様書_*.md
+
+# === 一般 ===
+node_modules/
+dist/
+build/
+.DS_Store
+*.log

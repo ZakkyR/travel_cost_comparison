@@ -1,0 +1,5 @@
+station_name,parking_name,daily_max_fee,conditions,lat,lng,last_checked,source_url,note
+サンプルA駅,サンプル駐車場1,600,架空データ。実データは parkings.csv に入れる（コミットしない）,,,,,
+サンプルA駅,サンプル駐車場2,800,架空データ,,,,,
+サンプルB駅,サンプル駐車場3,500,架空データ,,,,,
+サンプルC駅,サンプル駐車場4,900,架空データ,,,,,
