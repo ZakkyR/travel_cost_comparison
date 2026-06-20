@@ -1,4 +1,5 @@
 export function calcGasCost(distanceKm, fuelEfficiency, gasPrice) {
+  if (!fuelEfficiency) return 0;
   return Math.round((distanceKm * 2) / fuelEfficiency * gasPrice);
 }
 

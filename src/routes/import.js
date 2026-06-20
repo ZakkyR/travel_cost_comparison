@@ -8,6 +8,7 @@ export function createImportRouter(db) {
   const router = Router();
 
   router.post('/stations', upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'file is required' });
     const records = parse(req.file.buffer, { columns: true, skip_empty_lines: true, bom: true });
     let imported = 0;
     const errors = [];
@@ -27,6 +28,7 @@ export function createImportRouter(db) {
   });
 
   router.post('/parkings', upload.single('file'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'file is required' });
     const records = parse(req.file.buffer, { columns: true, skip_empty_lines: true, bom: true });
     let imported = 0;
     const errors = [];
