@@ -4,6 +4,7 @@ import { initDb } from '../../src/db.js';
 export function createTestDb() {
   const db = new Database(':memory:');
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   initDb(db);
   return db;
 }

@@ -21,7 +21,8 @@ export function initDb(db) {
       lng REAL,
       last_checked TEXT,
       source_url TEXT,
-      note TEXT
+      note TEXT,
+      FOREIGN KEY (station_name) REFERENCES stations(station_name)
     );
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
@@ -47,6 +48,7 @@ export function createDb(dbPath) {
   const db = new Database(dbPath);
   // Azure App Service の /home は CIFS/SMB マウントのため WAL 必須（SQLITE_BUSY 回避）
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   initDb(db);
   return db;
 }
