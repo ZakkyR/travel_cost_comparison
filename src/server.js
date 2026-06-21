@@ -25,7 +25,6 @@ export function createApp(db) {
   app.use(express.json());
   Sentry.setupExpressErrorHandler(app);
   app.use(express.static(join(__dirname, 'public')));
-  app.use('/api', authMiddleware);
   app.use('/api/compare', createCompareRouter(db));
   app.use('/api/stations', createStationsRouter(db));
   app.use('/api/parkings', createParkingsRouter(db));
