@@ -12,6 +12,7 @@ import { createSettingsRouter } from './routes/settings.js';
 import { createFareRouter } from './routes/fare.js';
 import { createImportRouter } from './routes/import.js';
 import { createMcpRouter } from './routes/mcp.js';
+import { createOAuthRouter, authorizeHandler, tokenHandler } from './routes/oauth.js';
 import { initSentry } from './sentry.js';
 
 dotenv.config();
@@ -32,6 +33,9 @@ export function createApp(db) {
   app.use('/api/fare', createFareRouter(db));
   app.use('/api/import', createImportRouter(db));
   app.use('/mcp', authMiddleware, createMcpRouter(db));
+  app.use('/.well-known', createOAuthRouter());
+  app.get('/authorize', authorizeHandler);
+  app.post('/token', express.urlencoded({ extended: false }), tokenHandler);
   return app;
 }
 
