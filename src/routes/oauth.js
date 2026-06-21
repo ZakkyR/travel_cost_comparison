@@ -2,15 +2,20 @@
 import { Router } from 'express';
 import fetch from 'node-fetch';
 
+function baseUrl(req) {
+  const proto = req.headers['x-forwarded-proto'] || req.protocol;
+  return `${proto}://${req.get('host')}`;
+}
+
 export function createOAuthRouter() {
   const router = Router();
 
   router.get('/oauth-authorization-server', (req, res) => {
-    const base = `${req.protocol}://${req.get('host')}`;
+    const base = baseUrl(req);
     res.json({
       issuer: base,
-      authorization_endpoint: `${base}/authorize`,
-      token_endpoint: `${base}/token`,
+      authorization_endpoint: `${base}/mcp-auth/authorize`,
+      token_endpoint: `${base}/mcp-auth/token`,
       response_types_supported: ['code'],
       grant_types_supported: ['authorization_code'],
       code_challenge_methods_supported: ['S256'],

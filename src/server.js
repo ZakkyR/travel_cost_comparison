@@ -34,8 +34,8 @@ export function createApp(db) {
   app.use('/api/import', createImportRouter(db));
   app.use('/mcp', authMiddleware, createMcpRouter(db));
   app.use('/.well-known', createOAuthRouter());
-  app.get('/authorize', authorizeHandler);
-  app.post('/token', express.urlencoded({ extended: false }), tokenHandler);
+  app.get('/mcp-auth/authorize', authorizeHandler);
+  app.post('/mcp-auth/token', express.urlencoded({ extended: false }), tokenHandler);
   return app;
 }
 
