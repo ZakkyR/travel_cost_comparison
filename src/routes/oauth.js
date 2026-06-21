@@ -30,6 +30,9 @@ export function authorizeHandler(req, res) {
   const clientId = process.env.AZURE_CLIENT_ID;
   const params = new URLSearchParams(req.query);
   params.set('client_id', clientId);
+  if (!params.has('scope')) {
+    params.set('scope', 'openid profile');
+  }
   res.redirect(`https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?${params}`);
 }
 
@@ -38,12 +41,23 @@ export async function tokenHandler(req, res) {
   const clientId = process.env.AZURE_CLIENT_ID;
   const clientSecret = process.env.AZURE_CLIENT_SECRET;
   try {
-    const body = new URLSearchParams({ ...req.body, client_id: clientId, client_secret: clientSecret });
+    // Azure AD でコードを検証する
+    const body = new URLSearchParams({ ...req.body, client_id: clientId, client_secret: clientSecret, scope: 'openid profile' });
     const response = await fetch(
       `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
       { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() }
     );
-    res.status(response.status).json(await response.json());
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json(data);
+    }
+    // 認証成功後、MCP_API_KEY を access_token として返す
+    // Claude.ai はこれを Bearer トークンとして /mcp に送信する
+    res.json({
+      access_token: process.env.MCP_API_KEY,
+      token_type: 'Bearer',
+      expires_in: 31536000,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
